@@ -40,10 +40,10 @@ export async function signInWithGoogle(req: Request, res: Response) {
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (google_id) DO UPDATE SET
          email = EXCLUDED.email, name = EXCLUDED.name, photo_url = EXCLUDED.photo_url, updated_at = NOW()
-       RETURNING id, email, name, photo_url AS "photoURL", role`,
+        RETURNING id, email, name, photo_url AS "photoURL", role`,
       [profile.sub, profile.email, profile.name, profile.picture || null],
     );
-     return res.json(createSession(result.rows[0]));
+    return res.json(createSession(result.rows[0]));
   } catch (error) {
     console.error('Could not persist Google user:', error);
     return res.status(500).json({ message: 'No se pudo guardar la sesión del usuario.' });

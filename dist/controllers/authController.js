@@ -48,7 +48,7 @@ function signInWithGoogle(req, res) {
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (google_id) DO UPDATE SET
          email = EXCLUDED.email, name = EXCLUDED.name, photo_url = EXCLUDED.photo_url, updated_at = NOW()
-       RETURNING id, email, name, photo_url AS "photoURL", role`, [profile.sub, profile.email, profile.name, profile.picture || null]);
+        RETURNING id, email, name, photo_url AS "photoURL", role`, [profile.sub, profile.email, profile.name, profile.picture || null]);
             return res.json(createSession(result.rows[0]));
         }
         catch (error) {

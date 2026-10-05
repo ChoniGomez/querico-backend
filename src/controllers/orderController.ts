@@ -14,18 +14,18 @@ async function loadOrders(userId?: string) {
   const whereClause = userId ? 'WHERE o.user_id = $1' : '';
   const values = userId ? [userId] : [];
   return pool.query(
-        `SELECT o.id, COALESCE(u.name, o.customer_name) AS "customerName",
-          COALESCE(u.email, o.customer_email) AS "customerEmail",
+    `SELECT o.id, COALESCE(u.name, o.customer_name) AS "customerName",
+            COALESCE(u.email, o.customer_email) AS "customerEmail",
             o.delivery_type AS "deliveryType", o.address, o.payment_method AS "paymentMethod",
             o.cash_amount AS "cashAmount", o.total, o.status, o.created_at AS "createdAt",
             COALESCE(json_agg(json_build_object(
               'name', oi.product_name, 'quantity', oi.quantity, 'price', oi.unit_price, 'notes', oi.notes
             ) ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL), '[]') AS items
-    FROM orders o
-    LEFT JOIN users u ON u.id = o.user_id
-    LEFT JOIN order_items oi ON oi.order_id = o.id
-    ${whereClause}
-    GROUP BY o.id, u.name, u.email ORDER BY o.created_at DESC`,
+     FROM orders o
+     LEFT JOIN users u ON u.id = o.user_id
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     ${whereClause}
+     GROUP BY o.id, u.name, u.email ORDER BY o.created_at DESC`,
     values,
   );
 }
