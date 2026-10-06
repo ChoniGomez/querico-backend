@@ -31,13 +31,24 @@ async function loadOrders(userId?: string) {
 }
 
 export async function createOrder(req: AuthenticatedRequest, res: Response) {
-  const { customerName, deliveryType, address, paymentMethod, cashAmount, items } = req.body || {};
+  const { customerName, customerEmail, deliveryType, address, paymentMethod, cashAmount, items } = req.body || {};
   if (!customerName?.trim() || !['delivery', 'pickup'].includes(deliveryType)
     || !['cash', 'transfer'].includes(paymentMethod) || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Revisá los datos del pedido.' });
   }
   if (deliveryType === 'delivery' && !address?.trim()) {
     return res.status(400).json({ message: 'La dirección es obligatoria para el delivery.' });
+  }
+  if (!req.auth && customerEmail) {
+    try {
+      const account = await pool.query('SELECT is_verified AS "isVerified" FROM users WHERE email = $1', [String(customerEmail).trim().toLowerCase()]);
+      if (account.rows[0] && !account.rows[0].isVerified) {
+        return res.status(403).json({ message: 'Verificá tu correo antes de realizar un pedido con esta cuenta.' });
+      }
+    } catch (error) {
+      console.error('Could not check order account verification:', error);
+      return res.status(500).json({ message: 'No se pudo validar el correo del pedido.' });
+    }
   }
 
   const validItems = (items as OrderItemInput[]).every((item) => item.name?.trim()
@@ -53,7 +64,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       `INSERT INTO orders (user_id, customer_name, customer_email, delivery_type, address,
                            payment_method, cash_amount, total)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, status, created_at AS "createdAt"`,
-      [req.auth?.role === 'customer' ? req.auth.id : null, customerName.trim(), req.auth?.email || null,
+      [req.auth?.role === 'customer' ? req.auth.id : null, customerName.trim(), req.auth?.email || customerEmail || null,
         deliveryType, address?.trim() || null, paymentMethod, cashAmount ? Number(cashAmount) : null, total],
     );
     const order = inserted.rows[0];
