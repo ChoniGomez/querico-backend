@@ -16,6 +16,7 @@ export interface AuthSessionUser {
   lastName?: string | null;
   address?: string | null;
   isVerified?: boolean;
+  authProvider?: 'google' | 'email';
 }
 
 export function createSession(user: AuthSessionUser) {
@@ -80,7 +81,7 @@ export async function signInWithGoogle(req: Request, res: Response) {
           profile.family_name || null, profile.picture || null],
       );
     }
-    return res.json(createSession(result.rows[0]));
+    return res.json(createSession({ ...result.rows[0], authProvider: 'google' }));
   } catch (error) {
     console.error('Could not persist Google user:', error);
     return res.status(500).json({ message: 'No se pudo guardar la sesión del usuario.' });
@@ -90,7 +91,8 @@ export async function signInWithGoogle(req: Request, res: Response) {
 export async function getCurrentProfile(req: AuthenticatedRequest, res: Response) {
   try {
     const result = await pool.query(
-            `SELECT id, email, name, role, is_verified AS "isVerified",
+      `SELECT id, email, name, role, is_verified AS "isVerified",
+              CASE WHEN google_id IS NOT NULL THEN 'google' ELSE 'email' END AS "authProvider",
               first_name AS "firstName", last_name AS "lastName", address,
               photo_url AS "photoURL"
        FROM users WHERE id = $1`,
@@ -117,12 +119,23 @@ export async function updateCurrentProfile(req: AuthenticatedRequest, res: Respo
       `UPDATE users SET first_name = $1, last_name = $2, address = $3,
                         name = concat_ws(' ', $1, $2), updated_at = NOW()
        WHERE id = $4
-      RETURNING id, email, name, role, is_verified AS "isVerified",
-           first_name AS "firstName", last_name AS "lastName",
-                 address, photo_url AS "photoURL"`,
+         AND (first_name IS DISTINCT FROM $1 OR last_name IS DISTINCT FROM $2 OR address IS DISTINCT FROM $3)
+       RETURNING id, email, name, role, is_verified AS "isVerified",
+                 CASE WHEN google_id IS NOT NULL THEN 'google' ELSE 'email' END AS "authProvider",
+                 first_name AS "firstName", last_name AS "lastName", address, photo_url AS "photoURL"`,
       [firstName, lastName, address || null, req.auth!.id],
     );
-    if (result.rowCount === 0) return res.status(404).json({ message: 'No se encontró el perfil.' });
+    if (result.rowCount === 0) {
+      const unchangedProfile = await pool.query(
+        `SELECT id, email, name, role, is_verified AS "isVerified",
+                CASE WHEN google_id IS NOT NULL THEN 'google' ELSE 'email' END AS "authProvider",
+                first_name AS "firstName", last_name AS "lastName", address, photo_url AS "photoURL"
+         FROM users WHERE id = $1`,
+        [req.auth!.id],
+      );
+      if (unchangedProfile.rowCount === 0) return res.status(404).json({ message: 'No se encontró el perfil.' });
+      return res.json(unchangedProfile.rows[0]);
+    }
     return res.json(result.rows[0]);
   } catch (error) {
     console.error('Could not update user profile:', error);

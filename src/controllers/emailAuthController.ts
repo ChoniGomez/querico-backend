@@ -65,6 +65,7 @@ function accountFields(row: Record<string, unknown>) {
     lastName: row.lastName as string | null,
     address: row.address as string | null,
     isVerified: row.isVerified as boolean,
+    authProvider: 'email' as const,
   };
 }
 
