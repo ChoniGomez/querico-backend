@@ -174,7 +174,7 @@ export async function getAllOrders(_req: Request, res: Response) {
 
 export async function updateOrderStatus(req: Request, res: Response) {
   const { status } = req.body || {};
-  if (!['Pendiente', 'En preparación', 'Entregado'].includes(status)) {
+  if (!['Pendiente', 'En preparación', 'Entregado', 'Cancelado'].includes(status)) {
     return res.status(400).json({ message: 'El estado solicitado no es válido.' });
   }
   try {
