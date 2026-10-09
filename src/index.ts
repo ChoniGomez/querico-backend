@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import orderRoutes from './routes/orderRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import productRoutes from './routes/productRoutes';
+import promotionRoutes from './routes/promotionRoutes';
 import { ensureCategorySchema } from './controllers/categoryController';
 
 dotenv.config();
@@ -24,6 +25,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/promotions', promotionRoutes);
 
 // Asegurar que la tabla categories tenga las columnas necesarias (display_order, sort_order, is_visible)
 ensureCategorySchema().catch((err) => {
