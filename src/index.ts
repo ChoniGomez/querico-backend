@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import orderRoutes from './routes/orderRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import productRoutes from './routes/productRoutes';
+import { ensureCategorySchema } from './controllers/categoryController';
 
 dotenv.config();
 
@@ -21,7 +22,13 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+
+// Asegurar que la tabla categories tenga las columnas necesarias (display_order, sort_order, is_visible)
+ensureCategorySchema().catch((err) => {
+  console.warn('Inicialización de esquema de categorías:', err?.message || err);
+});
 
 app.listen(port, () => {
   console.log(`⚡️[server]: El servidor está corriendo en http://localhost:${port}`);
