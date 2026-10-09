@@ -23,7 +23,7 @@ export async function getProducts(_req: Request, res: Response) {
               ((${availabilitySql}) = 'available') AS "isPurchasable"
        FROM products p
        INNER JOIN categories c ON c.id = p.category_id
-       WHERE c.is_visible = TRUE
+      WHERE c.is_visible = TRUE AND p.is_available = TRUE
        ORDER BY c.sort_order, p.id`,
     );
     return res.json(result.rows);
@@ -92,5 +92,24 @@ export async function updateProductAvailability(req: Request, res: Response) {
   } catch (error) {
     console.error('Could not update product availability:', error);
     return res.status(500).json({ message: 'No se pudo guardar la disponibilidad.' });
+  }
+}
+
+export async function updateProductVisibility(req: Request, res: Response) {
+  const { visible } = req.body || {};
+  if (typeof visible !== 'boolean') {
+    return res.status(400).json({ message: 'El campo visible debe ser verdadero o falso.' });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE products SET is_available = $1 WHERE id = $2
+       RETURNING id, is_available AS visible`,
+      [visible, req.params.id],
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'No se encontró el producto.' });
+    return res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Could not update product visibility:', error);
+    return res.status(500).json({ message: 'No se pudo actualizar la visibilidad del producto.' });
   }
 }
